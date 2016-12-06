@@ -28,6 +28,7 @@ const Player = function (name, controller, id, game, x, y) {
   self.nextBombTime = 0;
   self.bombRadius = 1;
   self.wins = 0;
+  self.loses = 0;
   self.bombInterval = BOMBING_INTERVAL;
   self.speed = PLAYER_DEFAULT_SPEED;
 
@@ -39,7 +40,7 @@ const Player = function (name, controller, id, game, x, y) {
   self.info = new Proxy(self, {
       get: function(target, name){
           if (['id', 'name', 'type', 'x', 'y', 'lastAction', 'nextBombTime',
-              'bombInterval', 'bombRadius', 'speed'].indexOf(name) === -1) {
+              'bombInterval', 'bombRadius', 'speed', 'wins', 'loses'].indexOf(name) === -1) {
                 return;
           }
           return self[name];
@@ -143,5 +144,3 @@ const PlayersList = function () {
     return bot[0];
   }
 };
-
-

@@ -18,7 +18,7 @@
     var bomb_radius = 1;
     var round_over = false;
     var allow_bombing = true;
-    var game_wins_to_finish = 3;
+    var game_wins_to_finish = 9999999;
     var activePlayers = [];
     var bomb_max_radius = 10;
     var bomb_expand_after_seconds = 5;
@@ -45,9 +45,10 @@
                                  game, point[0], point[1]);
 
             plr.wins = activeplayer.wins;
+            plr.loses = activeplayer.loses;
             players.push(plr);
             map_objects_unsafe.push(plr.info);
-            dashboard.addItem("player" + plr.id, plr.name, plr.wins, 
+            dashboard.addItem("player" + plr.id, plr.name, plr.wins,
                 { align: "right", tint: getTint(plr.id) });
         }
     };
@@ -69,7 +70,7 @@
         pp_bricks = makeBricks(game);
 
         game.paused = true;
-        
+
         if (typeof autoStartBots !== 'undefined') {
             autoStartBots.forEach(b => {
                 console.log('auto adding bot:', b.name);
@@ -270,6 +271,8 @@
 
             // remove dead players
             if (player.pp.dead) {
+                var apLoser = activePlayers.find(ap => ap.id === player.id);
+                player.loses = ++apLoser.loses;
                 players.splice(idx, 1);
                 for (let id in map_objects_unsafe) {
                     if (map_objects_unsafe[id].type === 'player' &&
@@ -317,7 +320,7 @@
         // add as player after script loaded
         setTimeout(function() {
             var bot = filename ? availableBots.get(name) : availableBots.last();
-            activePlayers.push({id: activePlayers.length, name: bot.name, wins: 0});
+            activePlayers.push({id: activePlayers.length, name: bot.name, wins: 0, loses: 0});
             addPlayers(activePlayers[activePlayers.length - 1]);
         }, 150);
     }
@@ -389,5 +392,3 @@
         dashboard.addButtonListener('btnGo', onGoClick);
     };
 })();
-
-
