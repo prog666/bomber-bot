@@ -327,7 +327,7 @@
 
     function onGoClick() {
         if (game.paused) {
-            updateDashboardId = setInterval(updateDashboard, 1000);
+            updateDashboardId = setInterval(updateDashboard, 1000 / SPEED);
         }
         game.paused = false;
     }

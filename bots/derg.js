@@ -327,9 +327,9 @@
     var inputSize = 19;
     var network = new Neuroevolution({
         population: 20,
-        network: [inputSize, [11], 3],
-        historic: 5,
-        nbChild: 5
+        network: [inputSize, [12], 5],
+        historic: 0,
+        nbChild: 1
     });
     function init(){
         gens = network.nextGeneration();
@@ -355,6 +355,8 @@
     // map - информация о карте и некоторые константы
     // map_objects - информация о временных объектах на карте. Таких как игроки, бомбы, магичесие артефакты
     function dergachevBot(my_info, my_state, map, map_objects, cursors) {
+        var width = map.width - 3;
+        var height = map.height - 3;
         if (!inited) {
             inited = true;
             init();
@@ -393,8 +395,8 @@
                 if (object.id === my_info.id) {
                     continue; // myself
                 }
-                var leftOffset = (object.x - x) / map.width;
-                var topOffset = (object.y - y) / map.height;
+                var leftOffset = (object.x - x) / width;
+                var topOffset = (object.y - y) / height;
                 if (leftOffset === 0) {
                     inputs[14] = 0;
                     inputs[15] = 0;
@@ -429,8 +431,8 @@
             if (object.type === 'bomb') {
                 inc = bombs * 5;
                 inputs[4 + inc] = 1;
-                var leftOffset = (object.x - x) / map.width;
-                var topOffset = (object.y - y) / map.height;
+                var leftOffset = (object.x - x) / width;
+                var topOffset = (object.y - y) / height;
                 if (leftOffset === 0) {
                     inputs[5 + inc] = 0;
                     inputs[6 + inc] = 0;
@@ -471,11 +473,12 @@
         if (wins) {
             lastWins = my_info.wins;
             score = 100000000000 / (Date.now() - startTime);
-        } else {
+        }/* else {
             score = 1 - (1 / (Date.now() - startTime));
-        }
+        }*/
         if (endGame) {
             startTime = Date.now();
+            console.log(index, score);
 
             network.networkScore(gens[index], score);
 
@@ -489,9 +492,17 @@
 
 
         res = gen.compute(inputs);
-        if (res[2] > .5 && Date.now() > my_info.nextBombTime) {
+        if (res[4] > .5 && Date.now() > my_info.nextBombTime) {
             return 'bomb';
         }
+        maxIndex = 0;
+        for (var i = 1; i < res.length - 1; i++){
+            if (res[i] > res[maxIndex]) {
+                maxIndex = i;
+            }
+        }
+        return actions[maxIndex];
+        /*
         if (res[0] > .75) {
             return 'left';
         }
@@ -506,6 +517,7 @@
         }
         return 'stop';
         return actions[Math.floor(res[0] * actions.length)];
+        */
         /*
         for (var i = 0; i < actions.length; i++){
             if (res[i] > .5) {
