@@ -319,30 +319,28 @@
 
     */
 
-    var network;
-    var gen;
+    var gens = [];
     var inited = false;
-    var startTime;
+    var startTime = Date.now();
+    var index = 0;
 
-    function init(map){
-        // var inputSize = map.width * map.height + 2;
-        startTime = Date.now();
-        var inputSize = 2 + 4 + 3 + 2 + 3;
-        network = new Neuroevolution({
-            population: 1,
-            network: [inputSize, [inputSize], 6]
-        });
-
-        gen = network.nextGeneration()[0];
+    var inputSize = 12;
+    var network = new Neuroevolution({
+        population: 10,
+        network: [inputSize, [inputSize], 2],
+        historic: 5,
+        mutationRate: .2,
+        mutationRange: .5
+    });
+    function init(){
+        gens = network.nextGeneration();
     }
 
     var actions = [
         'left',
         'right',
         'up',
-        'down',
-        'stop',
-        'bomb'
+        'down'
     ];
 
     var lastWins = 0;
@@ -360,25 +358,26 @@
     function dergachevBot(my_info, my_state, map, map_objects, cursors) {
         if (!inited) {
             inited = true;
-            init(map);
+            init();
         }
+        var gen = gens[index];
         var {x, y} = my_info;
 
         var inputs = [
-            x / map.width,
-            y / map.height,
+            //x / map.width,
+            //y / map.height,
             map(x, y - 1) === map.wall ? 1 : 0,
             map(x, y + 1) === map.wall ? 1 : 0,
             map(x - 1, y) === map.wall ? 1 : 0,
             map(x + 1, y) === map.wall ? 1 : 0,
             0, // bomb exists
-            0, // bomb x
-            0, // bomb y
+            0, // bomb left offset
+            0, // bomb right offset
+            0, // bomb top offset
+            0, // bomb bottom offset
             0, // other player x
             0, // other player y
-            0, // bomb 2 exists
-            0, // bomb 2 x
-            0, // bomb 2 y
+            my_info.bombRadius / 10,
         ];
 
         var bombs = 0;
@@ -402,16 +401,29 @@
                 // object.bombInterval
             }
             if (object.type === 'bomb') {
-                if(bombs === 1) {
-                    inputs[11] = 1;
-                    inputs[12] = object.x / map.width;
-                    inputs[13] = object.y / map.height;
-                } else {
+                inputs[4] = 1;
+                var leftOffset = (object.x - x) / map.width;
+                var topOffset = (object.y - y) / map.height;
+                if (leftOffset === 0) {
+                    inputs[5] = 0;
+                    inputs[6] = 0;
+                } else if (leftOffset < 0) {
+                    inputs[5] = -leftOffset;
                     inputs[6] = 1;
-                    inputs[7] = object.x / map.width;
-                    inputs[8] = object.y / map.height;
+                } else {
+                    inputs[5] = 1;
+                    inputs[6] = leftOffset;
                 }
-                bombs++;
+                if (topOffset === 0) {
+                    inputs[7] = 0;
+                    inputs[8] = 0;
+                } else if (topOffset < 0) {
+                    inputs[7] = -topOffset;
+                    inputs[8] = 1;
+                } else {
+                    inputs[7] = 1;
+                    inputs[8] =  topOffset;
+                }
             }
         }
         /*
@@ -422,30 +434,55 @@
         }
         */
 
-        var lost = my_info.loses > lastLoses
-        var won = my_info.wins > lastWins;
-        if (lost || won) {
-            var score = 0;
-            if (won) {
-                score = 1000000 / Date.now() - startTime;
-            }
-
+        var score = 0;
+        var wins = my_info.wins > lastWins;
+        var endGame = (my_info.loses > lastLoses || wins);
+        if (my_info.loses > lastLoses) {
             lastLoses = my_info.loses;
+        }
+        if (wins) {
             lastWins = my_info.wins;
-            network.networkScore(gen, score);
-            init(map);
-            return;
+        }
+        if (endGame) {
+            score = Date.now() - startTime;
+            console.log(score);
+            startTime = Date.now();
+
+            network.networkScore(gens[index], score);
+
+            if (index === gens.length - 1) {
+                index = 0;
+                init();
+            } else {
+                index++;
+            }
         }
 
+
         res = gen.compute(inputs);
-        console.log(res);
-        // return actions[Math.floor(res * 6)];
+        if(res[0] > .75) {
+            return 'left';
+        }
+        if (res[0] < .25) {
+            return 'right';
+        }
+        if (res[1] > .75) {
+            return 'up';
+        }
+        if (res[1] < .25) {
+            return 'down';
+        }
+        return 'stand';
+        return actions[Math.floor(res[0] * actions.length)];
+        /*
         for (var i = 0; i < actions.length; i++){
             if (res[i] > .5) {
                 return actions[i];
             }
         }
         return 'stop';
+        */
+
 
         /*
 
