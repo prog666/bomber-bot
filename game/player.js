@@ -8,11 +8,11 @@ const Player = function (name, controller, id, game, x, y) {
   phaserPlayer.body.height = SPACE.Y;
   // phaserPlayer.body.offset.x = -10;
 
-  phaserPlayer.animations.add('left', [0, 1, 2],  10, true);
-  phaserPlayer.animations.add('right',[9, 10, 11],10, true);
-  phaserPlayer.animations.add('up',   [6, 7, 8],  10, true);
-  phaserPlayer.animations.add('down', [3, 4, 5],  10, true);
-  phaserPlayer.animations.add('die',  [12, 13, 14, 15 ,16, 17, 18], 10, false);
+  phaserPlayer.animations.add('left', [0, 1, 2],  10 * SPEED, true);
+  phaserPlayer.animations.add('right',[9, 10, 11],10 * SPEED, true);
+  phaserPlayer.animations.add('up',   [6, 7, 8],  10 * SPEED, true);
+  phaserPlayer.animations.add('down', [3, 4, 5],  10 * SPEED, true);
+  phaserPlayer.animations.add('die',  [12, 13, 14, 15 ,16, 17, 18], 10 * SPEED, false);
   phaserPlayer.tint = getTint(id);
 
   function PlayerInternalState(){}

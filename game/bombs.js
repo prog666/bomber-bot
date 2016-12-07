@@ -10,7 +10,6 @@ const makeBomb = function (player) {
 
     var map_x = Math.floor(bomb.position.x / SPACE.X);
     var map_y = Math.floor(bomb.position.y / SPACE.Y);
-
     var bomb_info = {
         exists: true,
         type: 'bomb',
@@ -36,7 +35,7 @@ const makeBomb = function (player) {
             flame.position[x_or_y] = SPACE[x_or_y.toUpperCase()] * direction * i;
             var sprites = i == radius ? sprites_end : sprites_body;
             var animation = flame.animations
-                .add('explosion', sprites, 12, false)
+                .add('explosion', sprites, 12 * SPEED, false)
                 .play();
             bomb.add(flame);
 
@@ -54,7 +53,7 @@ const makeBomb = function (player) {
 
     center.animations
         .add('moving',
-            [ 30, 29, 28, 29, 30, 29, 28, 29, 30, 29, 28, 29, 30, 29, 28, 29, 30 ], 10, false)
+            [ 30, 29, 28, 29, 30, 29, 28, 29, 30, 29, 28, 29, 30, 29, 28, 29, 30 ], 10 * SPEED, false)
         .play()
         .onComplete.add(function onBombExplosion(){
             center.kill();

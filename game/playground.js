@@ -21,8 +21,8 @@
     var game_wins_to_finish = 9999999;
     var activePlayers = [];
     var bomb_max_radius = 10;
-    var bomb_expand_after_seconds = 5;
-    var bomb_expand_every_seconds = 5;
+    var bomb_expand_after_seconds = 5 / SPEED;
+    var bomb_expand_every_seconds = 5 / SPEED;
 
     // export readonly functions:
     Object.defineProperty(window, "addBot",
@@ -260,7 +260,7 @@
 
                 clearInterval(updateDashboardId);
                 updateDashboardId = undefined;
-                setTimeout(gameRestart, 1500);
+                setTimeout(gameRestart, 100 / SPEED);
                 return;
             }
         }

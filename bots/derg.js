@@ -324,13 +324,12 @@
     var startTime = Date.now();
     var index = 0;
 
-    var inputSize = 12;
+    var inputSize = 19;
     var network = new Neuroevolution({
-        population: 10,
-        network: [inputSize, [inputSize], 2],
+        population: 20,
+        network: [inputSize, [11], 3],
         historic: 5,
-        mutationRate: .2,
-        mutationRange: .5
+        nbChild: 5
     });
     function init(){
         gens = network.nextGeneration();
@@ -375,8 +374,15 @@
             0, // bomb right offset
             0, // bomb top offset
             0, // bomb bottom offset
-            0, // other player x
-            0, // other player y
+            0, // bomb exists 2nd
+            0, // bomb left offset
+            0, // bomb right offset
+            0, // bomb top offset
+            0, // bomb bottom offset
+            0, // other player left offset
+            0, // other player right offset
+            0, // other player top offset
+            0, // other player bottom offset
             my_info.bombRadius / 10,
         ];
 
@@ -387,8 +393,28 @@
                 if (object.id === my_info.id) {
                     continue; // myself
                 }
-                inputs[9] = object.x / map.width;
-                inputs[10] = object.y / map.height;
+                var leftOffset = (object.x - x) / map.width;
+                var topOffset = (object.y - y) / map.height;
+                if (leftOffset === 0) {
+                    inputs[14] = 0;
+                    inputs[15] = 0;
+                } else if (leftOffset < 0) {
+                    inputs[14] = -leftOffset;
+                    inputs[15] = 1;
+                } else {
+                    inputs[14] = 1;
+                    inputs[15] = leftOffset;
+                }
+                if (topOffset === 0) {
+                    inputs[16] = 0;
+                    inputs[17] = 0;
+                } else if (topOffset < 0) {
+                    inputs[16] = -topOffset;
+                    inputs[17] = 1;
+                } else {
+                    inputs[16] = 1;
+                    inputs[17] =  topOffset;
+                }
 
                 // you can use info about other players:
                 // object.id
@@ -401,29 +427,31 @@
                 // object.bombInterval
             }
             if (object.type === 'bomb') {
-                inputs[4] = 1;
+                inc = bombs * 5;
+                inputs[4 + inc] = 1;
                 var leftOffset = (object.x - x) / map.width;
                 var topOffset = (object.y - y) / map.height;
                 if (leftOffset === 0) {
-                    inputs[5] = 0;
-                    inputs[6] = 0;
+                    inputs[5 + inc] = 0;
+                    inputs[6 + inc] = 0;
                 } else if (leftOffset < 0) {
-                    inputs[5] = -leftOffset;
-                    inputs[6] = 1;
+                    inputs[5 + inc] = -leftOffset;
+                    inputs[6 + inc] = 1;
                 } else {
-                    inputs[5] = 1;
-                    inputs[6] = leftOffset;
+                    inputs[5 + inc] = 1;
+                    inputs[6 + inc] = leftOffset;
                 }
                 if (topOffset === 0) {
-                    inputs[7] = 0;
-                    inputs[8] = 0;
+                    inputs[7 + inc] = 0;
+                    inputs[8 + inc] = 0;
                 } else if (topOffset < 0) {
-                    inputs[7] = -topOffset;
-                    inputs[8] = 1;
+                    inputs[7 + inc] = -topOffset;
+                    inputs[8 + inc] = 1;
                 } else {
-                    inputs[7] = 1;
-                    inputs[8] =  topOffset;
+                    inputs[7 + inc] = 1;
+                    inputs[8 + inc] =  topOffset;
                 }
+                bombs++;
             }
         }
         /*
@@ -442,10 +470,11 @@
         }
         if (wins) {
             lastWins = my_info.wins;
+            score = 100000000000 / (Date.now() - startTime);
+        } else {
+            score = 1 - (1 / (Date.now() - startTime));
         }
         if (endGame) {
-            score = Date.now() - startTime;
-            console.log(score);
             startTime = Date.now();
 
             network.networkScore(gens[index], score);
@@ -460,7 +489,10 @@
 
 
         res = gen.compute(inputs);
-        if(res[0] > .75) {
+        if (res[2] > .5 && Date.now() > my_info.nextBombTime) {
+            return 'bomb';
+        }
+        if (res[0] > .75) {
             return 'left';
         }
         if (res[0] < .25) {
@@ -472,7 +504,7 @@
         if (res[1] < .25) {
             return 'down';
         }
-        return 'stand';
+        return 'stop';
         return actions[Math.floor(res[0] * actions.length)];
         /*
         for (var i = 0; i < actions.length; i++){
