@@ -1,6 +1,6 @@
 const WALL = 100;
 const W = WALL;
-const SPEED = 4;
+const SPEED = 4
 const MAP = [
     [W,W,W,W,W,W,W,W,W,W,W,W,W,W,W],
     [W,0,0,0,0,0,0,0,0,0,0,0,0,0,W],
