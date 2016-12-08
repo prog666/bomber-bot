@@ -1531,12 +1531,65 @@ global.DQNAgent = DQNAgent;
 //global.DeterministPG = DeterministPG;
 })(RL);
 
-(function(){
+(function isolate(){
+    'use strict';
+    function makeBombMap(map, map_objects) {
+        var bomb_map = [];
+
+        for (var p in map_objects) {
+            var bomb = map_objects[p];
+            if (bomb.type === 'bomb') {
+                bomb_map.push({x: bomb.x, y: bomb.y, birth: bomb.birth, value: 1});
+                let radius = bomb.radius;
+                // @TODO refactor
+
+                for(let bx = 1; bx <= radius; bx++){
+                    let new_x = bomb.x + bx;
+                    if(map(new_x, bomb.y) === WALL) {
+                        break;
+                    }
+                    bomb_map.push({x: new_x, y: bomb.y, birth: bomb.birth, value: 1 / bx});
+                }
+                for(let bx = 1; bx <= radius; bx++){
+                    let new_x = bomb.x - bx;
+                    if(map(new_x, bomb.y) === WALL) {
+                        break;
+                    }
+                    bomb_map.push({x: new_x, y: bomb.y, birth: bomb.birth, value: 1 / bx});
+                }
+                for(let by = 1; by <= radius; by++){
+                    let new_y = bomb.y + by;
+                    if(map(bomb.x, new_y) === WALL) {
+                        break;
+                    }
+                    bomb_map.push({x: bomb.x, y: new_y, birth: bomb.birth, value: 1 / by});
+                }
+                for(let by = 1; by <= radius; by++){
+                    let new_y = bomb.y - by;
+                    if(map(bomb.x, new_y) === WALL) {
+                        break;
+                    }
+                    bomb_map.push({x: bomb.x, y: new_y, birth: bomb.birth, value: 1 / by});
+                }
+            }
+        }
+        bomb_map.forEach(function ({x, y, birth, value}) {
+            bombMap[y][x] = {birth, value};
+            var expireTime = BOMB_EXPLOSION_FINISH - Date.now() + birth;
+            setTimeout(function () {
+                if (bombMap[y][x].birth === birth) {
+                    bombMap[y][x].value = 0;
+                }
+            }, expireTime);
+        });
+    }
 
     addBot({
         name: "derg",
         routine: dergachevBot
     });
+
+    var bombMap = [];
 
     var inited = false;
     var agent;
@@ -1544,27 +1597,38 @@ global.DQNAgent = DQNAgent;
 
         // create an environment object
         var env = {};
-        env.getNumStates = function() { return size; }
-        env.getMaxNumActions = function() { return 6; }
+        env.getNumStates = function() { return size; };
+        env.getMaxNumActions = function() { return 6; };
 
         // create the DQN agent
         var spec = {
             update: 'qlearn', // qlearn | sarsa
             gamma: 0.9, // discount factor, [0, 1)
-            epsilon: 0.1, // initial epsilon for epsilon-greedy policy, [0, 1)
+            epsilon: 0.15, // initial epsilon for epsilon-greedy policy, [0, 1)
             alpha: 0.01, // value function learning rate
-            experience_add_every: 10, // number of time steps before we add another experience to replay memory
+            experience_add_every: 30, // number of time steps before we add another experience to replay memory
             experience_size: 5000,  // size of experience replay memory
-            learning_steps_per_iteration: 100,
+            learning_steps_per_iteration: 40,
             tderror_clamp: 1.0,
-            num_hidden_units: 100
+            num_hidden_units: 300
         };
         agent = new RL.DQNAgent(env, spec);
         var brain = localStorage.getItem('brain');
         if (brain) {
             agent.fromJSON(JSON.parse(brain));
         }
-    };
+    }
+
+    function initBombMap(map){
+        for (var i = 0; i < map.width - 1; i++) {
+            for (var j = 0; j < map.height - 1; j++) {
+                if(bombMap[j] === undefined) {
+                    bombMap[j] = [];
+                }
+                bombMap[j][i] = {value: 0, birth: 0};
+            }
+        }
+    }
 
     var actions = [
         'right',
@@ -1572,11 +1636,20 @@ global.DQNAgent = DQNAgent;
         'left',
         'up',
         'stop',
+        'bomb'
     ];
 
     var lastWins = 0;
     var lastLoses = 0;
 
+    function isOnFire(player) {
+        var x = Math.round(player.x);
+        var y = Math.round(player.y);
+        if (bombMap[y] && bombMap[y][x]) {
+            return bombMap[y][x].value;
+        }
+        return 0;
+    }
 
     // Функция бота.
     // На входе принимает данные о карте и других ботах/элементах
@@ -1586,146 +1659,85 @@ global.DQNAgent = DQNAgent;
     // my_state - Object в котором можно хранить временные данные бота
     // map - информация о карте и некоторые константы
     // map_objects - информация о временных объектах на карте. Таких как игроки, бомбы, магичесие артефакты
-    var inputs = [
-    ];
     function dergachevBot(my_info, my_state, map, map_objects, cursors) {
+        var inputs = [];
         var {x, y} = my_info;
+
+        if(!inited){
+            initBombMap(map);
+        }
+
         var width = map.width - 3;
         var height = map.height - 3;
-        /*
-        for (var i = 0; i < width * 2; i++) {
-            for (var j = 0; j < height * 2; j++) {
-                inputs[i * height * 2 + j] = map(i - width + x, j - height + y) === map.wall ? 1 : 0;
+
+        makeBombMap(map, map_objects);
+
+        for (var i = y - 2; i < y + 3; i++){
+            for (var j = x - 2; j < x + 3; j++){
+                inputs.push(isOnFire({x: j, y: i}));
             }
         }
-        */
-        inputs[0] = (x - 1) / width;
-        inputs[1] = (y - 1) / height;
-        var nextAfterWalls = 2;// width * 2 * height * 2;
+
+        inputs.push((x - 1) / width);
+        inputs.push((y - 1) / height);
 
 
-        inputs[nextAfterWalls] = my_info.bombRadius / 10;
+        var otherPlayer = {x: 0, y: 0};
 
-/*
-        for (var i = 0; i < map.width - 1; i++) {
-            for (var j = 0; j < map.height - 1; j++) {
-                inputs[i * (map.height - 1) + j + 9] = map(i, j) === map.wall ? 1 : 0;
-            }
-        }
-        */
-
-        if(map(x, y) !== map.wall && map(x, y) !== 0){
-            console.log(map(x, y));
-        }
-
-        for (var i = 5; i < 13; i++) {
-            if (inputs[nextAfterWalls + i] === undefined) {
-                inputs[nextAfterWalls + i] = 1;
-            }
-        }
-        var distanceToPlayer = 0;
         for (var p in map_objects) {
             var object = map_objects[p];
             if (object.type === 'player' ) {
                 if (object.id === my_info.id) {
                     continue; // myself
                 }
-                distanceToPlayer = 1 - ((Math.abs((object.x - x) / width)) + (Math.abs((object.y - y) / height)));
-                console.log(distanceToPlayer);
-                var leftOffset = (object.x - x) / width;
-                inputs[nextAfterWalls + 1] = 0;
-                inputs[nextAfterWalls + 2] = 0;
-                if (leftOffset < 0) {
-                    inputs[nextAfterWalls + 1] = -leftOffset;
-                    inputs[nextAfterWalls + 2] = 1;
-                } else if (leftOffset > 0) {
-                    inputs[nextAfterWalls + 1] = 1;
-                    inputs[nextAfterWalls + 2] = leftOffset;
-                }
-
-                var topOffset = (object.y - y) / height;
-                inputs[nextAfterWalls + 3] = 0;
-                inputs[nextAfterWalls + 4] = 0;
-                if (topOffset < 0) {
-                    inputs[nextAfterWalls + 3] = -topOffset;
-                    inputs[nextAfterWalls + 4] = 1;
-                } else if (topOffset > 0) {
-                    inputs[nextAfterWalls + 3] = 1;
-                    inputs[nextAfterWalls + 4] = topOffset;
-                }
-
-                // you can use info about other players:
-                // object.id
-                // object.type
-                // object.x
-                // object.y
-                // object.lastAction
-                // object.nextBombTime
-                // object.speed
-                // object.bombInterval
-            }
-            if (object.type === 'bomb') {
-                (function(object){
-                    inc = object.owner * 4;
-                    var leftOffset = (object.x - x) / width;
-                    inputs[nextAfterWalls + 5 + inc] = 0;
-                    inputs[nextAfterWalls + 6 + inc] = 0;
-                    if (leftOffset < 0) {
-                        inputs[nextAfterWalls + 5 + inc] = -leftOffset;
-                        inputs[nextAfterWalls + 6 + inc] = 1;
-                    } else if (leftOffset > 0) {
-                        inputs[nextAfterWalls + 5 + inc] = 1;
-                        inputs[nextAfterWalls + 6 + inc] = leftOffset;
-                    }
-
-                    var topOffset = (object.y - y) / height;
-                    inputs[nextAfterWalls + 7 + inc] = 0;
-                    inputs[nextAfterWalls + 8 + inc] = 0;
-                    if (topOffset < 0) {
-                        inputs[nextAfterWalls + 7 + inc] = -topOffset;
-                        inputs[nextAfterWalls + 8 + inc] = 1;
-                    } else if (topOffset > 0) {
-                        inputs[nextAfterWalls + 7 + inc] = 1;
-                        inputs[nextAfterWalls + 8 + inc] = topOffset;
-                    }
-                    setTimeout(function(){
-                        inputs[nextAfterWalls + 5 + inc] = 1;
-                        inputs[nextAfterWalls + 6 + inc] = 1;
-                        inputs[nextAfterWalls + 7 + inc] = 1;
-                        inputs[nextAfterWalls + 8 + inc] = 1;
-                    }, BOMB_EXPLOSION_FINISH);
-                })(object);
+                otherPlayer = object;
             }
         }
-        if (!inited) {
-            init(inputs.length);
+        var leftOffset = (otherPlayer.x - x) / width;
+        if (leftOffset === 0) {
+            inputs.push(0);
+            inputs.push(0);
+        } else if (leftOffset < 0) {
+            inputs.push(-leftOffset);
+            inputs.push(1);
+        } else if (leftOffset > 0) {
+            inputs.push(1);
+            inputs.push(leftOffset);
         }
 
-        var wins = my_info.wins > lastWins;
-        var endGame = (my_info.loses > lastLoses || wins);
+        var topOffset = (otherPlayer.y - y) / height;
+        if (topOffset === 0) {
+            inputs.push(0);
+            inputs.push(0);
+        } else if (topOffset < 0) {
+            inputs.push(-topOffset);
+            inputs.push(1);
+        } else if (topOffset > 0) {
+            inputs.push(1);
+            inputs.push(topOffset);
+        }
 
         var score = 0;
-        if (endGame) {
-            if(wins){
-                console.log('win');
-                score += 1;
-            }else{
-                score -= 1;
-            }
-            lastLoses = my_info.loses;
+        if(my_info.wins > lastWins){
             lastWins = my_info.wins;
+            score += 10;
+            console.log('win');
             localStorage.setItem('brain', JSON.stringify(agent.toJSON()));
         }
+
         if (!inited) {
+            init(inputs.length);
             inited = true;
         } else {
-            //agent.learn(score);
-            agent.learn(distanceToPlayer);
+            agent.learn(score);
         }
 
+        score += isOnFire(otherPlayer);
+        score -= isOnFire(my_info);
+
+        console.log(score);
 
         var action = agent.act(inputs);
         return actions[action];
-
     }
 })();
