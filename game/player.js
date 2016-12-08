@@ -51,6 +51,8 @@ const Player = function (name, controller, id, game, x, y) {
   });
   // map readonly accessor
   self.map = function(x, y) {
+      x = Math.round(x);
+      y = Math.round(y);
       if(MAP[y] === undefined){ return WALL; }
       if(MAP[y][x] === undefined){ return WALL; }
       return MAP[y][x];

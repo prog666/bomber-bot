@@ -13,7 +13,7 @@
                 bomb_map[bomb.x] = bomb_map[bomb.x] || {};
                 bomb_map[bomb.x][bomb.y] = bomb.birth;
                 let radius = bomb.radius;
-                
+
                 for(let bx = 1; bx <= radius; bx++){
                     let new_x = bomb.x + bx;
                     if(map(new_x, bomb.y) === WALL) {
@@ -93,7 +93,7 @@ globaldots2 = [];
             }
         }
 
-        iterPath(x, y); 
+        iterPath(x, y);
 
         paths.sort((a, b) => a[1] - b[1] /* by weight */);
 
@@ -116,16 +116,16 @@ globaldots2 = [];
         //             globaldots.push(s);
         //         }
         //     }
-        // }    
+        // }
         // if (1) {
         //     globaldots.forEach(p => p.destroy());
         //     globaldots = [];
-        //     let p =paths[0][0]; 
+        //     let p =paths[0][0];
         //     for (let d in p) {
         //         let dot = p[d];
         //         let s = glob_game.add.sprite(dot[0]*SPACE.X, dot[1]*SPACE.Y, 'bomb', 32);
         //         globaldots.push(s);
-        //     }            
+        //     }
         // }
 
         // return first step
@@ -142,7 +142,7 @@ globaldots2 = [];
 
         var there_is_a_bomb;
         var target = {
-            x: +Infinity, 
+            x: +Infinity,
             y: +Infinity,
             w: +Infinity
         }
@@ -161,7 +161,7 @@ globaldots2 = [];
                 if (weight < target.w) {
                     target.w = weight;
                     target.x = object.x;
-                    target.y = object.y; 
+                    target.y = object.y;
                 }
             }
             else if (object.type === 'bomb') {
@@ -178,7 +178,7 @@ globaldots2 = [];
             if (xdiff <= my_info.bombRadius && eq_y) {
                 my_state.bomb = Date.now() + bombInterval * (1 + Math.round());
                 return 'bomb';
-            } 
+            }
             else if (ydiff <= my_info.bombRadius && eq_x) {
                 my_state.bomb = Date.now() + bombInterval * (1 + Math.round());
                 return 'bomb';
@@ -190,16 +190,16 @@ globaldots2 = [];
             let bomb_map = {};
             if(there_is_a_bomb){
                 bomb_map = makeBombMap(map, map_objects);
-                if (1) {
+                if (0) {
                     globaldots2.forEach(d => d.destroy());
                     globaldots2 = [];
                     for (let bx in bomb_map) {
                         for (let by in bomb_map[bx]) {
                             globaldots2.push(
                                 glob_game.add.sprite(bx*SPACE.X, by*SPACE.Y, 'bomb', 35)
-                            );                    
+                            );
                         }
-                    }                    
+                    }
                 }
             }
 
