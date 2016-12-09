@@ -1548,39 +1548,43 @@
                     if(map(new_x, bomb.y) === WALL) {
                         break;
                     }
-                    bomb_map.push({x: new_x, y: bomb.y, birth: bomb.birth, value: 1 / (bx + 1)});
+                    bomb_map.push({x: new_x, y: bomb.y, birth: bomb.birth, value: 1});
                 }
                 for(let bx = 1; bx <= radius; bx++){
                     let new_x = bomb.x - bx;
                     if(map(new_x, bomb.y) === WALL) {
                         break;
                     }
-                    bomb_map.push({x: new_x, y: bomb.y, birth: bomb.birth, value: 1 / (bx + 1)});
+                    bomb_map.push({x: new_x, y: bomb.y, birth: bomb.birth, value: 1});
                 }
                 for(let by = 1; by <= radius; by++){
                     let new_y = bomb.y + by;
                     if(map(bomb.x, new_y) === WALL) {
                         break;
                     }
-                    bomb_map.push({x: bomb.x, y: new_y, birth: bomb.birth, value: 1 / (by + 1)});
+                    bomb_map.push({x: bomb.x, y: new_y, birth: bomb.birth, value: 1});
                 }
                 for(let by = 1; by <= radius; by++){
                     let new_y = bomb.y - by;
                     if(map(bomb.x, new_y) === WALL) {
                         break;
                     }
-                    bomb_map.push({x: bomb.x, y: new_y, birth: bomb.birth, value: 1 / (by + 1)});
+                    bomb_map.push({x: bomb.x, y: new_y, birth: bomb.birth, value: 1});
                 }
             }
         }
         bomb_map.forEach(function ({x, y, birth, value}) {
-            bombMap[y][x] = {birth, value};
-            var expireTime = BOMB_EXPLOSION_FINISH - Date.now() + birth;
-            setTimeout(function () {
-                if (bombMap[y][x].birth === birth) {
-                    bombMap[y][x].value = 0;
-                }
-            }, expireTime);
+            if (bombMap[y][x].birth !== birth) {
+                bombMap[y][x].birth = birth;
+                bombMap[y][x].value = value;
+                var expireTime = BOMB_EXPLOSION_FINISH - Date.now() + birth + (1000 / SPEED);
+                setTimeout(function () {
+                    if (bombMap[y][x].birth === birth) {
+                        bombMap[y][x].value = 0;
+                        bombMap[y][x].birth = 0;
+                    }
+                }, expireTime);
+            }
         });
     }
 
@@ -1606,11 +1610,11 @@
             gamma: 0.9, // discount factor, [0, 1)
             epsilon: 0.2, // initial epsilon for epsilon-greedy policy, [0, 1)
             alpha: 0.01, // value function learning rate
-            experience_add_every: 30, // number of time steps before we add another experience to replay memory
+            experience_add_every: 20, // number of time steps before we add another experience to replay memory
             experience_size: 5000,  // size of experience replay memory
-            learning_steps_per_iteration: 50,
+            learning_steps_per_iteration: 80,
             tderror_clamp: 1.0,
-            num_hidden_units: 200
+            num_hidden_units: 100
         };
         agent = new RL.DQNAgent(env, spec);
         var brain = localStorage.getItem('brain');
@@ -1625,7 +1629,7 @@
                 if(bombMap[j] === undefined) {
                     bombMap[j] = [];
                 }
-                bombMap[j][i] = {value: 0, birth: 0};
+                bombMap[j][i] = {birth: 0, value: 0};
             }
         }
     }
@@ -1636,19 +1640,22 @@
         'left',
         'up',
         'stop',
-        'bomb'
+        // 'bomb'
     ];
 
     var lastWins = 0;
     var lastLoses = 0;
 
-    function isOnFire(player) {
-        var x = Math.round(player.x);
-        var y = Math.round(player.y);
+    function getBombMap(y, x) {
         if (bombMap[y] && bombMap[y][x]) {
             return bombMap[y][x].value;
         }
         return 0;
+    }
+    function isOnFire({y, x}) {
+        var a = Math.max(getBombMap(Math.floor(y), Math.floor(x)), getBombMap(Math.floor(y), Math.ceil(x)));
+        var b = Math.max(getBombMap(Math.ceil(y), Math.floor(x)), getBombMap(Math.ceil(y), Math.ceil(x)));
+        return Math.max(a, b);
     }
 
     // Функция бота.
@@ -1671,22 +1678,22 @@
         var height = map.height - 3;
 
         makeBombMap(map, map_objects);
+        inputs.push(x / width);
+        inputs.push(y / height);
 
         for (var i = y - 2; i < y + 3; i++){
             for (var j = x - 2; j < x + 3; j++){
                 inputs.push(isOnFire({x: j, y: i}));
+                /*
                 if (j !== x && i !== y) {
-                  inputs.push(map(y, i) === map.wall ? 1 : 0);
+                    inputs.push(map(y, i) === map.wall ? 1 : 0);
                 }
+                */
             }
         }
 
-        inputs.push((x - 1) / width);
-        inputs.push((y - 1) / height);
-
-
         var otherPlayer = {x: 0, y: 0};
-
+        var distanceToPlayer = 0;
         for (var p in map_objects) {
             var object = map_objects[p];
             if (object.type === 'player' ) {
@@ -1696,6 +1703,7 @@
                 otherPlayer = object;
             }
         }
+        distanceToPlayer = 1 - ((Math.abs((otherPlayer.x - x) / width)) + (Math.abs((otherPlayer.y - y) / height)));
         var leftOffset = (otherPlayer.x - x) / width;
         if (leftOffset === 0) {
             inputs.push(0);
@@ -1727,16 +1735,30 @@
             console.log('win');
             localStorage.setItem('brain', JSON.stringify(agent.toJSON()));
         }
+        if(my_info.loses > lastLoses){
+            lastLoses = my_info.loses;
+            score -= 10;
+            localStorage.setItem('brain', JSON.stringify(agent.toJSON()));
+        }
 
-        score += isOnFire(otherPlayer);
-        score += 0.5 - isOnFire(my_info);
+        var meOnFire = isOnFire(my_info);
+        if(meOnFire){
+            score -= meOnFire;
+        } else {
+            score += isOnFire(otherPlayer) * 3;
+        }
+
+        if(score === 0){
+            score = distanceToPlayer * .5;
+        }
+
         if (!inited) {
             init(inputs.length);
             inited = true;
         } else {
+            // console.log(score);
             agent.learn(score);
         }
-
 
         var action = agent.act(inputs);
         return actions[action];
