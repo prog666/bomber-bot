@@ -1614,7 +1614,7 @@
             experience_size: 5000,  // size of experience replay memory
             learning_steps_per_iteration: 80,
             tderror_clamp: 1.0,
-            num_hidden_units: 100
+            num_hidden_units: 5
         };
         agent = new RL.DQNAgent(env, spec);
         var brain = localStorage.getItem('brain');
@@ -1678,12 +1678,14 @@
         var height = map.height - 3;
 
         makeBombMap(map, map_objects);
-        inputs.push(x / width);
-        inputs.push(y / height);
 
         for (var i = y - 2; i < y + 3; i++){
             for (var j = x - 2; j < x + 3; j++){
-                inputs.push(isOnFire({x: j, y: i}));
+                var onFire = isOnFire({x: j, y: i})
+                inputs.push(onFire);
+                if (onFire) {
+                    glob_game.add.sprite((x+j)*SPACE.X, (y+i)*SPACE.Y, 'bomb', 35)
+                }
                 /*
                 if (j !== x && i !== y) {
                     inputs.push(map(y, i) === map.wall ? 1 : 0);
