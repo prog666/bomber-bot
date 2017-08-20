@@ -1577,7 +1577,7 @@
             if (bombMap[y][x].birth !== birth) {
                 bombMap[y][x].birth = birth;
                 bombMap[y][x].value = value;
-                var expireTime = BOMB_EXPLOSION_FINISH - Date.now() + birth;
+                var expireTime = BOMB_EXPLOSION_FINISH - Date.now() + birth + 600 / SPEED;
                 setTimeout(function () {
                     if (bombMap[y][x].birth === birth) {
                         bombMap[y][x].value = 0;
@@ -1614,7 +1614,7 @@
         // create the DQN agent
         var spec = {
             update: 'qlearn', // qlearn | sarsa
-            gamma: 0.9, // discount factor, [0, 1)
+            gamma: 0.8, // discount factor, [0, 1)
             epsilon: 0.1, // initial epsilon for epsilon-greedy policy, [0, 1)
             alpha: 0.01, // value function learning rate
             experience_add_every: 5, // number of time steps before we add another experience to replay memory
@@ -1652,6 +1652,12 @@
 
     var lastWins = 0;
     var lastLoses = 0;
+
+    function isOnFire({x, y}) {
+        var a = Math.max(bombMapFn(Math.floor(x), Math.floor(y)), bombMapFn(Math.floor(x), Math.ceil(y)));
+        var b = Math.max(bombMapFn(Math.ceil(x), Math.floor(y)), bombMapFn(Math.ceil(x), Math.ceil(y)));
+        return Math.max(a, b);
+    }
 
     function bombMapFn(x, y) {
         let realX = x;
@@ -1755,17 +1761,21 @@
 
         if(my_info.wins > lastWins){
             lastWins = my_info.wins;
-            score += 20;
-            agent.learn(score);
             localStorage.setItem('brain', JSON.stringify(agent.toJSON()));
-        }
-        if(my_info.loses > lastLoses){
+            agent.learn(1000);
+        } else if(my_info.loses > lastLoses){
             lastLoses = my_info.loses;
-            agent.learn(-100)
-            score = 0;
+            agent.learn(-1000);
+        } else if (!inited) {
+            init(inputs.length);
+        } else {
+            var meOnFire = isOnFire(my_info);
+            if(meOnFire){
+                agent.learn(meOnFire * -100);
+            } else {
+                agent.learn(isOnFire(otherPlayer) * 100);
+            }
         }
-
-        init(inputs.length);
 
         var action = agent.act(inputs);
 
