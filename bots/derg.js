@@ -1615,13 +1615,13 @@
         var spec = {
             update: 'qlearn', // qlearn | sarsa
             gamma: 0.9, // discount factor, [0, 1)
-            epsilon: 0.2, // initial epsilon for epsilon-greedy policy, [0, 1)
-            alpha: 0.05, // value function learning rate
-            experience_add_every: 20, // number of time steps before we add another experience to replay memory
+            epsilon: 0.1, // initial epsilon for epsilon-greedy policy, [0, 1)
+            alpha: 0.01, // value function learning rate
+            experience_add_every: 5, // number of time steps before we add another experience to replay memory
             experience_size: 5000,  // size of experience replay memory
-            learning_steps_per_iteration: 30,
+            learning_steps_per_iteration: 20,
             tderror_clamp: 1.0,
-            num_hidden_units: 51
+            num_hidden_units: 30
         };
         agent = new RL.DQNAgent(env, spec);
         var brain = localStorage.getItem('brain');
@@ -1700,15 +1700,6 @@
         return result;
     }
 
-    let debug = {};
-    for (let i = -3; i < 4; i++) {
-        debug[i] = {};
-        for (let j = -3; j < 4; j++){
-            debug[i][j] = document.getElementById(`debug${j}${i}`);
-        }
-    }
-
-
     // Функция бота.
     // На входе принимает данные о карте и других ботах/элементах
     // На выкоде команда к действию тип <string>
@@ -1732,28 +1723,15 @@
 
         for (var i = -3; i < 4; i++){
             for (var j = -3; j < 4; j++){
-                // let onFire = isOnFire({x: j, y: i})
-
                 let coords = {
                     x: x + j,
                     y: y + i,
                 };
-                let result = getMapValue(getWallMap(map), coords);
+                let wall = getMapValue(getWallMap(map), coords);
                 let fire = getMapValue(bombMapFn, coords);
-                /*
-                debug[i][j].style.backgroundColor = 'transparent';
-                if (result) {
-                    debug[i][j].style.backgroundColor = 'black';
-                    debug[i][j].style.opacity = result;
-                }
-                if (fire) {
-                    result = -fire;
-                    debug[i][j].style.backgroundColor = 'red';
-                    debug[i][j].style.opacity = fire;
-                }
-                */
 
-                inputs.push(result);
+                inputs.push(wall);
+                inputs.push(fire);
             }
         }
 
@@ -1770,42 +1748,21 @@
         }
         distanceToPlayer = 1 - ((Math.abs((otherPlayer.x - x) / width)) + (Math.abs((otherPlayer.y - y) / height)));
         var leftOffset = (otherPlayer.x - x) / width;
-        if (leftOffset === 0) {
-            inputs.push(0);
-            inputs.push(0);
-        } else if (leftOffset < 0) {
-            inputs.push(-leftOffset);
-            inputs.push(1);
-        } else if (leftOffset > 0) {
-            inputs.push(1);
-            inputs.push(leftOffset);
-        }
+        inputs.push(leftOffset);
 
         var topOffset = (otherPlayer.y - y) / height;
-        if (topOffset === 0) {
-            inputs.push(0);
-            inputs.push(0);
-        } else if (topOffset < 0) {
-            inputs.push(-topOffset);
-            inputs.push(1);
-        } else if (topOffset > 0) {
-            inputs.push(1);
-            inputs.push(topOffset);
-        }
+        inputs.push(topOffset);
 
         if(my_info.wins > lastWins){
             lastWins = my_info.wins;
-            score += 10;
-            console.log('win');
+            score += 20;
+            agent.learn(score);
             localStorage.setItem('brain', JSON.stringify(agent.toJSON()));
         }
         if(my_info.loses > lastLoses){
             lastLoses = my_info.loses;
-            score -= 5;
-            agent.learn(score);
-            console.log('learnod', score);
+            agent.learn(-100)
             score = 0;
-            localStorage.setItem('brain', JSON.stringify(agent.toJSON()));
         }
 
         init(inputs.length);
