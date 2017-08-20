@@ -15,14 +15,14 @@
     var updateDashboard;
     var updateDashboardId;
     var startTime = 0;
+    var increaseTimer = 0;
     var bomb_radius = 1;
     var round_over = false;
     var allow_bombing = true;
     var game_wins_to_finish = 9999999;
     var activePlayers = [];
     var bomb_max_radius = 10;
-    var bomb_expand_after_seconds = 5 / SPEED;
-    var bomb_expand_every_seconds = 5 / SPEED;
+    var bomb_expand_after_seconds = 5;
 
     // export readonly functions:
     Object.defineProperty(window, "addBot",
@@ -217,6 +217,7 @@
     function gameRestart() {
         console.log('game restart');
         startTime = 0;
+        increaseTimer = 0;
         resetBombRadius();
 
         if (!updateDashboardId) {
@@ -350,14 +351,15 @@
 
     updateDashboard = function() {
         startTime++;
+        increaseTimer++;
         var minutes = Math.floor(startTime / 60);
         var seconds = startTime % 60;
         dashboard.setItem('time',
             [zeroPad(minutes, 2), zeroPad(seconds, 2)].join("-"));
 
-        if(startTime >= bomb_expand_after_seconds &&
-           startTime % bomb_expand_every_seconds === 0 &&
-           bomb_radius < bomb_max_radius) {
+        if(increaseTimer * SPEED >= bomb_expand_after_seconds &&
+            bomb_radius < bomb_max_radius) {
+                increaseTimer = 0;
                 increaseBombRadius();
         }
 
