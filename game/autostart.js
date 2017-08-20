@@ -1,4 +1,4 @@
 const autoStartBots = [
 	{ name: 'derg', filename: 'bots/derg.js' },
-	{ name: 'keys', filename: 'bots/keyboard.js' }
+	{ name: 'zk', filename: 'bots/zk.js' }
 ];
