@@ -1,6 +1,6 @@
 const WALL = 100;
 const W = WALL;
-const SPEED = 1;
+const SPEED = 2;
 const MAP = [
     [W,W,W,W,W,W,W,W,W,W,W,W,W,W,W],
     [W,0,0,0,0,0,0,0,0,0,0,0,0,0,W],
@@ -43,10 +43,10 @@ const SPAWN_POINTS = [
     [MAP[0].length - 2, MAP.length - 2],
     [MAP[0].length - 2, 1],
     [1, MAP.length - 2],
-    //[3,3],
-    //[MAP[0].length - 5, MAP.length - 5],
-    //[3, MAP.length - 5],
-    //[MAP[0].length - 5, 3],
+    [3,3],
+    [MAP[0].length - 5, MAP.length - 5],
+    [3, MAP.length - 5],
+    [MAP[0].length - 5, 3],
 ];
 
 // const TINTS = [0x77FFFF, 0xFFFF77, 0x77FF77, 0xFF7777, 0x7777FF, 0xFF77FF, 0xFFFFFF];
